@@ -9,54 +9,70 @@
 :root{
   --bg:#f7efec; --surface:#fffaf8; --ink:#43292e; --muted:#7f6065;
   --rose:#d8aab0; --rose-deep:#9c5663; --cocoa:#86635c; --blush:#f1e2df; --line:#e3cdc9;
+  --ok:#3c7a4d; --ok-bg:#e2f2e6; --bad:#b03a4c; --bad-bg:#f9e2e5; --warn:#a56d1a; --warn-bg:#f8ecd8;
 }
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){--bg:#2d2022;--surface:#3a2a2d;--ink:#f6e3e1;--muted:#d1aeb0;--rose:#b9707e;--rose-deep:#e8a3af;--cocoa:#c99b92;--blush:#4a3236;--line:#5a4044}
+  :root:not([data-theme="light"]){--bg:#2d2022;--surface:#3a2a2d;--ink:#f6e3e1;--muted:#d1aeb0;--rose:#b9707e;--rose-deep:#e8a3af;--cocoa:#c99b92;--blush:#4a3236;--line:#5a4044;--ok:#8fd3a2;--ok-bg:#24402d;--bad:#f1a1ad;--bad-bg:#4a262d;--warn:#f0c37a;--warn-bg:#4a3a1d}
 }
-:root[data-theme="dark"]{--bg:#2d2022;--surface:#3a2a2d;--ink:#f6e3e1;--muted:#d1aeb0;--rose:#b9707e;--rose-deep:#e8a3af;--cocoa:#c99b92;--blush:#4a3236;--line:#5a4044}
+:root[data-theme="dark"]{--bg:#2d2022;--surface:#3a2a2d;--ink:#f6e3e1;--muted:#d1aeb0;--rose:#b9707e;--rose-deep:#e8a3af;--cocoa:#c99b92;--blush:#4a3236;--line:#5a4044;--ok:#8fd3a2;--ok-bg:#24402d;--bad:#f1a1ad;--bad-bg:#4a262d;--warn:#f0c37a;--warn-bg:#4a3a1d}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Jost,system-ui,sans-serif;font-weight:400;line-height:1.6}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Jost,system-ui,sans-serif;font-weight:400;line-height:1.6;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;margin:0;line-height:1.1}
 a{color:inherit}
-nav{position:sticky;top:0;z-index:5;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:12px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px)}
+:focus-visible{outline:2px solid var(--rose-deep);outline-offset:2px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:12px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px)}
 nav a{text-decoration:none;padding:7px 16px;border-radius:4px;font-weight:500;font-size:.92rem;letter-spacing:.04em;transition:background .25s,color .25s}
 nav a:hover,nav a[aria-current="page"]{background:var(--blush);color:var(--rose-deep)}
 section{max-width:1020px;margin:0 auto;padding:48px 22px}
 h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:500}
-h2{font-size:clamp(1.7rem,3.5vw,2.2rem);margin-bottom:20px}
-h2::after{content:"";display:block;width:48px;height:2px;background:var(--rose-deep);margin-top:10px}
 .hi{color:var(--rose-deep);font-weight:500;letter-spacing:.06em;margin:0 0 6px}
-.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0 26px}
-input[type=date]{padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:28px}
-.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;text-align:center}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0 10px}
+.toolbar label{color:var(--muted)}
+input[type=date],input[type=search]{padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+input[type=search]{flex:1;min-width:180px;max-width:320px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:24px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;text-align:center}
 .stat b{display:block;font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:600}
-.stat span{font-size:.85rem;color:var(--muted);letter-spacing:.05em}
-.s-present b{color:#4a8f5d}.s-absent b{color:#c0475a}.s-late b{color:#c98a2d}.s-total b{color:var(--rose-deep)}
+.stat span{font-size:.82rem;color:var(--muted);letter-spacing:.05em}
+.s-present b{color:var(--ok)}.s-absent b{color:var(--bad)}.s-late b{color:var(--warn)}.s-total b,.s-none b{color:var(--rose-deep)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.93rem}
 th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}
 th{background:var(--blush);font-weight:600;font-size:.82rem;letter-spacing:.06em;color:var(--cocoa)}
 tr:last-child td{border-bottom:0}
-tbody tr{transition:background .2s}
 tbody tr:hover{background:var(--blush)}
 select{padding:7px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.88rem}
 .badge{display:inline-block;padding:2px 12px;border-radius:99px;font-size:.8rem;font-weight:600}
-.b-Present{background:#e2f2e6;color:#3c7a4d}.b-Absent{background:#f9e2e5;color:#b03a4c}.b-Late{background:#f8ecd8;color:#a56d1a}
+.b-Present{background:var(--ok-bg);color:var(--ok)}.b-Absent{background:var(--bad-bg);color:var(--bad)}.b-Late{background:var(--warn-bg);color:var(--warn)}
 button{padding:7px 16px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
 button:hover{border-color:var(--rose-deep);color:var(--rose-deep)}
 button.primary{background:var(--rose-deep);border-color:var(--rose-deep);color:#fff}
 button.primary:hover{background:#7f4350;color:#fff}
 button.danger:hover{background:#c0475a;border-color:#c0475a;color:#fff}
-button:disabled{opacity:.45;cursor:not-allowed}
-.actions{display:flex;gap:8px}
-#note{min-height:1.4em;font-weight:600;color:var(--rose-deep);margin:14px 0 0}
+button:disabled,select:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+#note{min-height:1.4em;font-weight:600;margin:10px 0 0;color:var(--rose-deep)}
+#note.error{color:var(--bad)}
 .empty{padding:40px;text-align:center;color:var(--muted)}
 footer{text-align:center;padding:30px;color:var(--muted)}
-#theme{position:fixed;right:16px;bottom:16px;width:46px;height:46px;border-radius:50%;border:2px solid var(--line);background:var(--surface);font-size:1.2rem;cursor:pointer}
+#theme{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:46px;height:46px;border-radius:50%;border:2px solid var(--line);background:var(--surface);font-size:1.2rem;cursor:pointer;padding:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h2{font-size:clamp(1.7rem,3.5vw,2.2rem);margin-bottom:6px}
+h2::after{content:"";display:block;width:48px;height:2px;background:var(--rose-deep);margin-top:10px}
+.chart-card{padding:18px 18px 10px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.c-present{fill:var(--ok)}.c-late{fill:var(--warn)}.c-absent{fill:var(--bad)}
+.lg-present{background:var(--ok)}.lg-late{background:var(--warn)}.lg-absent{background:var(--bad)}
+.rate{position:relative;min-width:110px;height:20px;background:var(--blush);border-radius:99px;overflow:hidden}
+.rate i{position:absolute;inset:0 auto 0 0;background:var(--rose);opacity:.55}
+.rate span{position:relative;padding-left:10px;font-size:.78rem;font-weight:600}
+.hint{color:var(--muted);font-size:.85rem;margin:10px 2px 0}
 @media(max-width:760px){.hide-m{display:none}section{padding:36px 14px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<base target="_blank">
 </head>
 <body>
 <nav aria-label="Main">
@@ -69,11 +85,14 @@ footer{text-align:center;padding:30px;color:var(--muted)}
   <p class="hi">Class Record</p>
   <h1>Daily Attendance</h1>
   <div class="toolbar">
-    <label for="date" style="color:var(--muted)">View / mark date:</label>
+    <label for="date">View / mark date:</label>
     <input type="date" id="date">
-    <button onclick="load()">Load</button>
+    <label for="search" class="sr-only">Search students</label>
+    <input type="search" id="search" placeholder="Search name, ID, subject, course">
+    <button id="markAll" class="primary">Mark all Present</button>
+    <button id="exportDay">Export day (CSV)</button>
   </div>
-  <p id="note" role="status"></p>
+  <p id="note" role="status" aria-live="polite"></p>
 </section>
 
 <section style="padding-top:0">
@@ -82,18 +101,49 @@ footer{text-align:center;padding:30px;color:var(--muted)}
     <div class="stat s-present"><b id="c-present">0</b><span>PRESENT</span></div>
     <div class="stat s-absent"><b id="c-absent">0</b><span>ABSENT</span></div>
     <div class="stat s-late"><b id="c-late">0</b><span>LATE</span></div>
+    <div class="stat s-none"><b id="c-none">0</b><span>NOT MARKED</span></div>
   </div>
 
   <div class="card">
-    <table>
-      <thead><tr>
-        <th>ID</th><th>Student</th><th class="hide-m">Subject</th><th class="hide-m">Course</th>
-        <th>Status</th><th>Time</th><th>Actions</th>
-      </tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <div id="empty" class="empty" style="display:none">No students found in the database.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Student</th><th class="hide-m">Subject</th><th class="hide-m">Course</th>
+          <th>Status</th><th>Time</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty" hidden></div>
   </div>
+</section>
+
+<section id="monthly" style="padding-top:0">
+  <h2>Monthly summary</h2>
+  <div class="toolbar">
+    <label for="month">Month:</label>
+    <input type="month" id="month">
+    <button id="exportMonth">Export month (CSV)</button>
+  </div>
+
+  <div class="card chart-card">
+    <div class="legend">
+      <span><i class="lg-present"></i>Present</span>
+      <span><i class="lg-late"></i>Late</span>
+      <span><i class="lg-absent"></i>Absent</span>
+    </div>
+    <div id="chart"></div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Student</th><th>Present</th><th>Late</th><th>Absent</th><th>Attendance rate</th></tr></thead>
+        <tbody id="monthRows"></tbody>
+      </table>
+    </div>
+  </div>
+  <p class="hint">Attendance rate = (Present + Late) ÷ days marked. Days with no record are not counted.</p>
 </section>
 
 <footer>© <span id="yr"></span> Khate · <a href="index.html">Back to portfolio</a></footer>
@@ -101,99 +151,335 @@ footer{text-align:center;padding:30px;color:var(--muted)}
 
 <script>
 const API_URL = "https://portfolio-api-rho-dusky.vercel.app/api/attendance";
-const rowsEl = document.getElementById("rows");
-const note = document.getElementById("note");
-const dateInput = document.getElementById("date");
+
+const $ = id => document.getElementById(id);
+const rowsEl = $("rows"), note = $("note"), dateInput = $("date"), searchInput = $("search"), emptyEl = $("empty");
+
+let students = [];   // last list from the server
+let loadToken = 0;   // lets us ignore out-of-date responses
+const editing = new Set();   // student_ids whose row is unlocked for editing
+const drafts = new Map();    // student_id -> dropdown choice not saved yet (survives search/re-render)
+const pretty = d => new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 dateInput.value = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
-function say(msg){ note.textContent = msg; }
+// Escape text before putting it inside innerHTML (prevents HTML injection)
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
-// ---------- LOAD ----------
-async function load(){
-  rowsEl.innerHTML = "<tr><td colspan='7' style='color:var(--muted)'>Loading…</td></tr>";
-  try{
-    const res = await fetch(`${API_URL}?date=${dateInput.value}`);
-    if(!res.ok) throw new Error();
-    const students = await res.json();
-    render(students);
-  }catch(e){
-    rowsEl.innerHTML = "";
-    document.getElementById("empty").style.display = "block";
-    document.getElementById("empty").textContent = "Could not load attendance.";
+function say(msg, isError = false) {
+  note.textContent = msg;
+  note.classList.toggle("error", isError);
+}
+
+// One helper for every API call. If the server answers 401, ask for the admin key once and retry.
+async function request(method, { query, body } = {}) {
+  const url = new URL(API_URL);
+  Object.entries(query || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const headers = {};
+    if (body) headers["Content-Type"] = "application/json";
+    const key = sessionStorage.getItem("adminKey");
+    if (key) headers["X-Admin-Key"] = key;
+
+    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+
+    if (res.status === 401 && attempt === 0) {
+      const entered = prompt("Enter the admin key to make changes:");
+      if (!entered) throw new Error("Admin key is required to make changes.");
+      sessionStorage.setItem("adminKey", entered.trim());
+      continue;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 401) sessionStorage.removeItem("adminKey");
+      throw new Error(data.error || "Something went wrong.");
+    }
+    return data;
   }
 }
 
-function render(students){
-  const empty = document.getElementById("empty");
-  rowsEl.innerHTML = "";
-  let p=0,a=0,l=0;
-  document.getElementById("c-total").textContent = students.length;
+// ---------- LOAD ----------
+async function load() {
+  if (!dateInput.value) { say("Please pick a date.", true); return; }
+  const token = ++loadToken;
+  rowsEl.innerHTML = "<tr><td colspan='7' style='color:var(--muted)'>Loading…</td></tr>";
+  emptyEl.hidden = true;
+  try {
+    const data = await request("GET", { query: { date: dateInput.value } });
+    if (token !== loadToken) return;          // a newer load started; ignore this one
+    students = data;
+    render();
+  } catch (e) {
+    if (token !== loadToken) return;
+    students = [];
+    rowsEl.innerHTML = "";
+    showEmpty("Could not load attendance. Check your connection and pick the date again.");
+    updateStats();
+  }
+}
 
-  students.forEach(s=>{
-    if(s.status==="Present")p++; else if(s.status==="Absent")a++; else if(s.status==="Late")l++;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${s.student_id}</td>
-      <td><b>${s.student_name}</b></td>
-      <td class="hide-m">${s.subject_name||""}</td>
-      <td class="hide-m">${s.course||""}</td>
-      <td>${s.status ? `<span class="badge b-${s.status}">${s.status}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
-      <td style="color:var(--muted)">${s.time||""}</td>
+function showEmpty(msg) { emptyEl.textContent = msg; emptyEl.hidden = false; }
+
+function updateStats() {
+  const count = s => students.filter(x => x.status === s).length;
+  const p = count("Present"), a = count("Absent"), l = count("Late");
+  $("c-total").textContent = students.length;
+  $("c-present").textContent = p;
+  $("c-absent").textContent = a;
+  $("c-late").textContent = l;
+  const unmarked = students.length - p - a - l;
+  $("c-none").textContent = unmarked;
+  $("markAll").disabled = unmarked === 0;   // nothing left to mark
+}
+
+function render() {
+  updateStats();
+  const q = searchInput.value.trim().toLowerCase();
+  const shown = !q ? students : students.filter(s =>
+    [s.student_id, s.student_name, s.subject_name, s.course].some(v => String(v ?? "").toLowerCase().includes(q)));
+
+  rowsEl.innerHTML = shown.map(s => {
+    const isEditing = editing.has(s.student_id);
+    const draft = drafts.get(s.student_id) ?? s.status ?? "";
+    const locked = !!s.status && !isEditing;                       // saved rows stay locked until Edit is clicked
+    const changed = isEditing && draft !== "" && draft !== s.status; // Update only when something really changed
+    return `
+    <tr data-id="${esc(s.student_id)}" data-exists="${s.status ? "1" : "0"}">
+      <td>${esc(s.student_id)}</td>
+      <td><b>${esc(s.student_name)}</b></td>
+      <td class="hide-m">${esc(s.subject_name)}</td>
+      <td class="hide-m">${esc(s.course)}</td>
+      <td>${s.status ? `<span class="badge b-${esc(s.status)}">${esc(s.status)}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
+      <td style="color:var(--muted)">${esc(s.time)}</td>
       <td><div class="actions">
-        <select id="sel-${s.student_id}">
+        <select aria-label="Status for ${esc(s.student_name)}"${locked ? " disabled" : ""}>
           <option value="">Set…</option>
-          <option ${s.status==="Present"?"selected":""}>Present</option>
-          <option ${s.status==="Absent"?"selected":""}>Absent</option>
-          <option ${s.status==="Late"?"selected":""}>Late</option>
+          ${["Present", "Absent", "Late"].map(o => `<option${draft === o ? " selected" : ""}>${o}</option>`).join("")}
         </select>
-        <button class="primary" onclick="save('${s.student_id}', ${s.status ? "true" : "false"})">${s.status ? "Edit" : "Save"}</button>
-        ${s.status ? `<button class="danger" onclick="del('${s.student_id}')">Delete</button>` : ""}
-      </div></td>`;
-    rowsEl.appendChild(tr);
-  });
+        ${s.status ? `
+          <button data-action="edit">${isEditing ? "Cancel" : "Edit"}</button>
+          <button class="primary" data-action="update"${changed ? "" : " disabled"}>Update</button>
+          <button class="danger" data-action="delete">Delete</button>`
+        : `<button class="primary" data-action="save">Save</button>`}
+      </div></td>
+    </tr>`;
+  }).join("");
 
-  document.getElementById("c-present").textContent = p;
-  document.getElementById("c-absent").textContent = a;
-  document.getElementById("c-late").textContent = l;
-  empty.style.display = students.length ? "none" : "block";
+  if (!students.length) showEmpty("No students found in the database.");
+  else if (!shown.length) showEmpty("No students match your search.");
+  else emptyEl.hidden = true;
 }
 
-// ---------- SAVE (new) / EDIT (existing) ----------
-async function save(id, exists){
-  const status = document.getElementById("sel-"+id).value;
-  if(!status){ say("Please choose Present, Absent, or Late first."); return; }
-  try{
-    const res = await fetch(API_URL, {
-      method: exists ? "PUT" : "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ student_id: id, status, date: dateInput.value })
-    });
-    const data = await res.json();
-    if(!res.ok){ say(data.error || "Something went wrong."); return; }
-    say(`${id} marked ${status} for ${dateInput.value}.`);
-    load();
-  }catch(e){ say("Network error. Please try again."); }
+// ---------- ROW ACTIONS: Create (Save) · Read (table) · Update (Edit → Update) · Delete ----------
+// Remember the dropdown choice, and enable Update only when it differs from what is saved.
+rowsEl.addEventListener("change", e => {
+  if (!e.target.matches("select")) return;
+  const tr = e.target.closest("tr");
+  const s = students.find(x => x.student_id === tr.dataset.id);
+  drafts.set(tr.dataset.id, e.target.value);
+  const upd = tr.querySelector('[data-action="update"]');
+  if (upd && s) upd.disabled = !(e.target.value && e.target.value !== s.status);
+});
+
+rowsEl.addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const tr = btn.closest("tr");
+  const id = tr.dataset.id;
+  const action = btn.dataset.action;
+  const s = students.find(x => x.student_id === id);
+  if (!s) return;
+
+  // EDIT / CANCEL: only unlocks or locks the dropdown, no server call
+  if (action === "edit") {
+    if (editing.has(id)) { editing.delete(id); drafts.delete(id); }
+    else { editing.add(id); drafts.set(id, s.status); }
+    say("");
+    render();
+    return;
+  }
+
+  const controls = tr.querySelectorAll("button, select");
+  controls.forEach(c => c.disabled = true);   // stop double-clicks while the request runs
+
+  try {
+    const choice = tr.querySelector("select").value;
+
+    if (action === "save") {                                   // CREATE a new attendance record
+      if (!choice) { say("Please choose Present, Absent, or Late first.", true); return; }
+      await request("POST", { body: { student_id: id, status: choice, date: dateInput.value } });
+      say(`${s.student_name} marked ${choice} for ${pretty(dateInput.value)}.`);
+    }
+
+    else if (action === "update") {                            // UPDATE an existing record
+      if (!choice || choice === s.status) { say("Choose a different status first.", true); return; }
+      await request("PUT", { body: { student_id: id, status: choice, date: dateInput.value } });
+      say(`${s.student_name} on ${pretty(dateInput.value)} changed from ${s.status} to ${choice}.`);
+    }
+
+    else if (action === "delete") {                            // DELETE only this day's record
+      if (!confirm(`Delete the "${s.status}" record of ${s.student_name} for ${pretty(dateInput.value)}?\n\nOnly this day's attendance is removed. The student stays in the class list.`)) return;
+      await request("DELETE", { query: { student_id: id, date: dateInput.value } });
+      say(`Removed the ${pretty(dateInput.value)} record. ${s.student_name} is still in the class list.`);
+    }
+
+    editing.delete(id);
+    drafts.delete(id);
+    await refreshAll();
+  } catch (err) {
+    say(err.message || "Network error. Please try again.", true);
+  } finally {
+    render();   // rebuild the row from state so button and dropdown states are always correct
+  }
+});
+
+// Load automatically when the date changes; filter as you type
+dateInput.addEventListener("change", () => { editing.clear(); drafts.clear(); load(); });
+searchInput.addEventListener("input", render);
+
+// ---------- MARK ALL PRESENT ----------
+$("markAll").addEventListener("click", async e => {
+  const btn = e.currentTarget;
+  const pending = students.filter(s => !s.status).length;
+  if (!pending) { say("Everyone is already marked for this date."); return; }
+  if (!confirm(`Mark ${pending} unmarked student(s) as Present for ${dateInput.value}?`)) return;
+  btn.disabled = true;
+  try {
+    const r = await request("POST", { body: { bulk: true, status: "Present", date: dateInput.value } });
+    say(`${r.marked} student(s) marked Present for ${dateInput.value}.`);
+    await refreshAll();
+  } catch (err) {
+    say(err.message || "Network error. Please try again.", true);
+  } finally {
+    updateStats();   // re-enables the button only if someone is still unmarked
+  }
+});
+
+// ---------- CSV EXPORT ----------
+// Quote cells that contain commas/quotes/newlines; neutralise cells Excel could run as formulas.
+function csvCell(v) {
+  let s = String(v ?? "");
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCSV(filename, rows) {
+  const csv = "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n"); // BOM so Excel reads UTF-8
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-// ---------- DELETE ----------
-async function del(id){
-  if(!confirm(`Delete ${id}'s record for ${dateInput.value}?`)) return;
-  try{
-    const res = await fetch(`${API_URL}?student_id=${encodeURIComponent(id)}&date=${dateInput.value}`, { method:"DELETE" });
-    const data = await res.json();
-    if(!res.ok){ say(data.error || "Something went wrong."); return; }
-    say(`${id}'s record was deleted.`);
-    load();
-  }catch(e){ say("Network error. Please try again."); }
+$("exportDay").addEventListener("click", () => {
+  if (!students.length) { say("Nothing to export yet.", true); return; }
+  downloadCSV(`attendance-${dateInput.value}.csv`, [
+    ["Student ID", "Student", "Subject", "Course", "Date", "Status", "Time"],
+    ...students.map(s => [s.student_id, s.student_name, s.subject_name, s.course, dateInput.value, s.status || "Not marked", s.time || ""])
+  ]);
+});
+
+$("exportMonth").addEventListener("click", () => {
+  if (!monthData || !monthData.students.length) { say("Nothing to export yet.", true); return; }
+  downloadCSV(`attendance-summary-${monthData.month}.csv`, [
+    ["Student ID", "Student", "Subject", "Course", "Month", "Present", "Late", "Absent", "Days marked", "Attendance rate (%)"],
+    ...monthData.students.map(s => [s.student_id, s.student_name, s.subject_name, s.course, monthData.month, s.present, s.late, s.absent, s.marked, s.rate ?? ""])
+  ]);
+});
+
+// ---------- MONTHLY SUMMARY + GRAPH ----------
+const monthInput = $("month");
+monthInput.value = dateInput.value.slice(0, 7);
+let monthData = null;
+let monthToken = 0;
+
+async function loadMonth() {
+  const month = monthInput.value;
+  if (!month) return;
+  const token = ++monthToken;
+  try {
+    const data = await request("GET", { query: { month } });
+    if (token !== monthToken) return;
+    monthData = data;
+    renderMonth();
+  } catch (e) {
+    if (token !== monthToken) return;
+    monthData = null;
+    $("monthRows").innerHTML = "";
+    $("chart").innerHTML = "<div class='empty'>Could not load the monthly summary.</div>";
+  }
 }
+
+function renderMonth() {
+  renderChart();
+  $("monthRows").innerHTML = monthData.students.map(s => `
+    <tr>
+      <td>${esc(s.student_id)}</td>
+      <td><b>${esc(s.student_name)}</b></td>
+      <td>${s.present}</td><td>${s.late}</td><td>${s.absent}</td>
+      <td>${s.rate === null
+        ? `<span style="color:var(--muted)">—</span>`
+        : `<div class="rate" title="${s.rate}%"><i style="width:${s.rate}%"></i><span>${s.rate}%</span></div>`}</td>
+    </tr>`).join("");
+}
+
+// Stacked bar chart, one column per day of the month, drawn as plain SVG (no library needed)
+function renderChart() {
+  const el = $("chart");
+  const days = monthData.days;
+  if (!days.length) { el.innerHTML = "<div class='empty'>No attendance recorded for this month.</div>"; return; }
+
+  const [yr, mo] = monthData.month.split("-").map(Number);
+  const n = new Date(yr, mo, 0).getDate();          // days in this month
+  const byDay = {};
+  days.forEach(d => { byDay[Number(d.date.slice(8, 10))] = d; });
+
+  const W = 760, H = 280, L = 38, R = 10, T = 12, B = 30;
+  const pw = W - L - R, ph = H - T - B;
+  const max = Math.max(1, ...days.map(d => d.Present + d.Late + d.Absent));
+  const step = Math.max(1, Math.ceil(max / 4));
+  const top = step * Math.ceil(max / step);
+  const slot = pw / n, bw = slot * 0.7;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Daily attendance for ${esc(monthData.month)}" font-family="Jost,system-ui,sans-serif" font-size="11">`;
+
+  for (let v = 0; v <= top; v += step) {            // grid lines + y labels
+    const gy = T + ph - (v / top) * ph;
+    svg += `<line x1="${L}" x2="${W - R}" y1="${gy}" y2="${gy}" stroke="var(--line)"/>` +
+           `<text x="${L - 6}" y="${gy + 4}" text-anchor="end" fill="var(--muted)">${v}</text>`;
+  }
+
+  for (let d = 1; d <= n; d++) {                    // one column per day
+    const x = L + (d - 1) * slot + (slot - bw) / 2;
+    const rec = byDay[d];
+    if (rec) {
+      let y = T + ph, bars = "";
+      [["Present", "c-present"], ["Late", "c-late"], ["Absent", "c-absent"]].forEach(([k, cls]) => {
+        const h = (rec[k] / top) * ph;
+        if (h > 0) { y -= h; bars += `<rect class="${cls}" x="${x}" y="${y}" width="${bw}" height="${h}"/>`; }
+      });
+      svg += `<g><title>${esc(monthData.month)}-${String(d).padStart(2, "0")}: ${rec.Present} present, ${rec.Late} late, ${rec.Absent} absent</title>${bars}</g>`;
+    }
+    if (d === 1 || d % 5 === 0)
+      svg += `<text x="${x + bw / 2}" y="${H - 10}" text-anchor="middle" fill="var(--muted)">${d}</text>`;
+  }
+  el.innerHTML = svg + "</svg>";
+}
+
+monthInput.addEventListener("change", loadMonth);
+const refreshAll = () => Promise.all([load(), loadMonth()]);
 
 // Theme + year
-const root=document.documentElement,btn=document.getElementById("theme");
-const dark=()=>root.dataset.theme==="dark"||(!root.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches);
-btn.onclick=()=>{root.dataset.theme=dark()?"light":"dark"};
-document.getElementById("yr").textContent=new Date().getFullYear();
+const root = document.documentElement, themeBtn = $("theme");
+const isDark = () => root.dataset.theme === "dark" || (!root.dataset.theme && matchMedia("(prefers-color-scheme:dark)").matches);
+themeBtn.onclick = () => { root.dataset.theme = isDark() ? "light" : "dark"; };
+$("yr").textContent = new Date().getFullYear();
 
 load();
+loadMonth();
 </script>
 </body>
 </html>
