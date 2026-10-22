@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Attendance · Nicole Khate Marquez</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f7efec; --surface:#fffaf8; --ink:#43292e; --muted:#7f6065;
+  --rose:#d8aab0; --rose-deep:#9c5663; --cocoa:#86635c; --blush:#f1e2df; --line:#e3cdc9;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#2d2022;--surface:#3a2a2d;--ink:#f6e3e1;--muted:#d1aeb0;--rose:#b9707e;--rose-deep:#e8a3af;--cocoa:#c99b92;--blush:#4a3236;--line:#5a4044}
+}
+:root[data-theme="dark"]{--bg:#2d2022;--surface:#3a2a2d;--ink:#f6e3e1;--muted:#d1aeb0;--rose:#b9707e;--rose-deep:#e8a3af;--cocoa:#c99b92;--blush:#4a3236;--line:#5a4044}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Jost,system-ui,sans-serif;font-weight:400;line-height:1.6}
+h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;margin:0;line-height:1.1}
+a{color:inherit}
+nav{position:sticky;top:0;z-index:5;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;padding:12px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px)}
+nav a{text-decoration:none;padding:7px 16px;border-radius:4px;font-weight:500;font-size:.92rem;letter-spacing:.04em;transition:background .25s,color .25s}
+nav a:hover,nav a[aria-current="page"]{background:var(--blush);color:var(--rose-deep)}
+section{max-width:1020px;margin:0 auto;padding:48px 22px}
+h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:500}
+h2{font-size:clamp(1.7rem,3.5vw,2.2rem);margin-bottom:20px}
+h2::after{content:"";display:block;width:48px;height:2px;background:var(--rose-deep);margin-top:10px}
+.hi{color:var(--rose-deep);font-weight:500;letter-spacing:.06em;margin:0 0 6px}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:18px 0 26px}
+input[type=date]{padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:28px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;text-align:center}
+.stat b{display:block;font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:600}
+.stat span{font-size:.85rem;color:var(--muted);letter-spacing:.05em}
+.s-present b{color:#4a8f5d}.s-absent b{color:#c0475a}.s-late b{color:#c98a2d}.s-total b{color:var(--rose-deep)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line)}
+th{background:var(--blush);font-weight:600;font-size:.82rem;letter-spacing:.06em;color:var(--cocoa)}
+tr:last-child td{border-bottom:0}
+tbody tr{transition:background .2s}
+tbody tr:hover{background:var(--blush)}
+select{padding:7px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.88rem}
+.badge{display:inline-block;padding:2px 12px;border-radius:99px;font-size:.8rem;font-weight:600}
+.b-Present{background:#e2f2e6;color:#3c7a4d}.b-Absent{background:#f9e2e5;color:#b03a4c}.b-Late{background:#f8ecd8;color:#a56d1a}
+button{padding:7px 16px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+button:hover{border-color:var(--rose-deep);color:var(--rose-deep)}
+button.primary{background:var(--rose-deep);border-color:var(--rose-deep);color:#fff}
+button.primary:hover{background:#7f4350;color:#fff}
+button.danger:hover{background:#c0475a;border-color:#c0475a;color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;gap:8px}
+#note{min-height:1.4em;font-weight:600;color:var(--rose-deep);margin:14px 0 0}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+footer{text-align:center;padding:30px;color:var(--muted)}
+#theme{position:fixed;right:16px;bottom:16px;width:46px;height:46px;border-radius:50%;border:2px solid var(--line);background:var(--surface);font-size:1.2rem;cursor:pointer}
+@media(max-width:760px){.hide-m{display:none}section{padding:36px 14px}}
+</style>
+<base target="_blank">
+</head>
+<body>
+<nav aria-label="Main">
+  <a href="index.html#about">About</a><a href="index.html#socials">Socials</a><a href="index.html#education">Education</a>
+  <a href="index.html#certs">Certifications</a><a href="index.html#projects">Projects</a><a href="index.html#contact">Contact</a>
+  <a href="attendance.html" aria-current="page">Daily Attendance</a>
+</nav>
+
+<section>
+  <p class="hi">Class Record</p>
+  <h1>Daily Attendance</h1>
+  <div class="toolbar">
+    <label for="date" style="color:var(--muted)">View / mark date:</label>
+    <input type="date" id="date">
+    <button onclick="load()">Load</button>
+  </div>
+  <p id="note" role="status"></p>
+</section>
+
+<section style="padding-top:0">
+  <div class="stats">
+    <div class="stat s-total"><b id="c-total">0</b><span>TOTAL STUDENTS</span></div>
+    <div class="stat s-present"><b id="c-present">0</b><span>PRESENT</span></div>
+    <div class="stat s-absent"><b id="c-absent">0</b><span>ABSENT</span></div>
+    <div class="stat s-late"><b id="c-late">0</b><span>LATE</span></div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Student</th><th class="hide-m">Subject</th><th class="hide-m">Course</th>
+        <th>Status</th><th>Time</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">No students found in the database.</div>
+  </div>
+</section>
+
+<footer>© <span id="yr"></span> Khate · <a href="index.html">Back to portfolio</a></footer>
+<button id="theme" aria-label="Toggle dark mode">◐</button>
+
+<script>
+const API_URL = "https://portfolio-api-rho-dusky.vercel.app/api/attendance";
+const rowsEl = document.getElementById("rows");
+const note = document.getElementById("note");
+const dateInput = document.getElementById("date");
+dateInput.value = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+function say(msg){ note.textContent = msg; }
+
+// ---------- LOAD ----------
+async function load(){
+  rowsEl.innerHTML = "<tr><td colspan='7' style='color:var(--muted)'>Loading…</td></tr>";
+  try{
+    const res = await fetch(`${API_URL}?date=${dateInput.value}`);
+    if(!res.ok) throw new Error();
+    const students = await res.json();
+    render(students);
+  }catch(e){
+    rowsEl.innerHTML = "";
+    document.getElementById("empty").style.display = "block";
+    document.getElementById("empty").textContent = "Could not load attendance.";
+  }
+}
+
+function render(students){
+  const empty = document.getElementById("empty");
+  rowsEl.innerHTML = "";
+  let p=0,a=0,l=0;
+  document.getElementById("c-total").textContent = students.length;
+
+  students.forEach(s=>{
+    if(s.status==="Present")p++; else if(s.status==="Absent")a++; else if(s.status==="Late")l++;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.student_id}</td>
+      <td><b>${s.student_name}</b></td>
+      <td class="hide-m">${s.subject_name||""}</td>
+      <td class="hide-m">${s.course||""}</td>
+      <td>${s.status ? `<span class="badge b-${s.status}">${s.status}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
+      <td style="color:var(--muted)">${s.time||""}</td>
+      <td><div class="actions">
+        <select id="sel-${s.student_id}">
+          <option value="">Set…</option>
+          <option ${s.status==="Present"?"selected":""}>Present</option>
+          <option ${s.status==="Absent"?"selected":""}>Absent</option>
+          <option ${s.status==="Late"?"selected":""}>Late</option>
+        </select>
+        <button class="primary" onclick="save('${s.student_id}', ${s.status ? "true" : "false"})">${s.status ? "Edit" : "Save"}</button>
+        ${s.status ? `<button class="danger" onclick="del('${s.student_id}')">Delete</button>` : ""}
+      </div></td>`;
+    rowsEl.appendChild(tr);
+  });
+
+  document.getElementById("c-present").textContent = p;
+  document.getElementById("c-absent").textContent = a;
+  document.getElementById("c-late").textContent = l;
+  empty.style.display = students.length ? "none" : "block";
+}
+
+// ---------- SAVE (new) / EDIT (existing) ----------
+async function save(id, exists){
+  const status = document.getElementById("sel-"+id).value;
+  if(!status){ say("Please choose Present, Absent, or Late first."); return; }
+  try{
+    const res = await fetch(API_URL, {
+      method: exists ? "PUT" : "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ student_id: id, status, date: dateInput.value })
+    });
+    const data = await res.json();
+    if(!res.ok){ say(data.error || "Something went wrong."); return; }
+    say(`${id} marked ${status} for ${dateInput.value}.`);
+    load();
+  }catch(e){ say("Network error. Please try again."); }
+}
+
+// ---------- DELETE ----------
+async function del(id){
+  if(!confirm(`Delete ${id}'s record for ${dateInput.value}?`)) return;
+  try{
+    const res = await fetch(`${API_URL}?student_id=${encodeURIComponent(id)}&date=${dateInput.value}`, { method:"DELETE" });
+    const data = await res.json();
+    if(!res.ok){ say(data.error || "Something went wrong."); return; }
+    say(`${id}'s record was deleted.`);
+    load();
+  }catch(e){ say("Network error. Please try again."); }
+}
+
+// Theme + year
+const root=document.documentElement,btn=document.getElementById("theme");
+const dark=()=>root.dataset.theme==="dark"||(!root.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches);
+btn.onclick=()=>{root.dataset.theme=dark()?"light":"dark"};
+document.getElementById("yr").textContent=new Date().getFullYear();
+
+load();
+</script>
+</body>
+</html>
