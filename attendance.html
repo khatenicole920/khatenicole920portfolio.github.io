@@ -70,6 +70,16 @@ h2::after{content:"";display:block;width:48px;height:2px;background:var(--rose-d
 .rate i{position:absolute;inset:0 auto 0 0;background:var(--rose);opacity:.55}
 .rate span{position:relative;padding-left:10px;font-size:.78rem;font-weight:600}
 .hint{color:var(--muted);font-size:.85rem;margin:10px 2px 0}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:26px;width:min(460px,92vw)}
+dialog::backdrop{background:rgba(40,20,25,.45)}
+dialog h3{font-size:1.7rem;margin-bottom:6px}
+dialog label{display:block;font-size:.85rem;color:var(--muted);margin:12px 0 4px;letter-spacing:.04em}
+dialog input,dialog select{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+dialog input:read-only{background:var(--blush);color:var(--muted)}
+dialog input[hidden]{display:none}
+dialog input+input{margin-top:8px}
+.dlg-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+#cNote{min-height:1.3em;color:var(--bad);font-weight:600;margin:12px 0 0}
 @media(max-width:760px){.hide-m{display:none}section{padding:36px 14px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -87,6 +97,7 @@ h2::after{content:"";display:block;width:48px;height:2px;background:var(--rose-d
   <div class="toolbar">
     <label for="date">View / mark date:</label>
     <input type="date" id="date">
+        <button id="createBtn" class="primary">+ Create student</button>
     <label for="search" class="sr-only">Search students</label>
     <input type="search" id="search" placeholder="Search name, ID, subject, course">
     <button id="markAll" class="primary">Mark all Present</button>
@@ -145,7 +156,32 @@ h2::after{content:"";display:block;width:48px;height:2px;background:var(--rose-d
   </div>
   <p class="hint">Attendance rate = (Present + Late) ÷ days marked. Days with no record are not counted.</p>
 </section>
-
+<dialog id="createDlg">
+  <h3>Create student</h3>
+  <p class="hint" style="margin:0">Added to the class list. Status applies to <b id="cDate"></b>.</p>
+  <form id="createForm">
+    <label for="cId">Student ID (automatic)</label>
+    <input id="cId" readonly>
+    <label for="cName">Student name</label>
+    <input id="cName" maxlength="100" required placeholder="Full name">
+    <label for="cSubject">Subject</label>
+    <select id="cSubject"></select>
+    <input id="cSubjectNew" maxlength="100" placeholder="Type the new subject" hidden>
+    <label for="cCourse">Course</label>
+    <select id="cCourse"></select>
+    <input id="cCourseNew" maxlength="50" placeholder="Type the new course" hidden>
+    <label for="cStatus">Status (optional, time is saved automatically)</label>
+    <select id="cStatus">
+      <option value="">Not marked</option>
+      <option>Present</option><option>Absent</option><option>Late</option>
+    </select>
+    <p id="cNote" role="alert"></p>
+    <div class="dlg-actions">
+      <button type="button" id="cCancel">Cancel</button>
+      <button type="submit" class="primary" id="cSave">Create student</button>
+    </div>
+  </form>
+</dialog>
 <footer>© <span id="yr"></span> Khate · <a href="index.html">Back to portfolio</a></footer>
 <button id="theme" aria-label="Toggle dark mode">◐</button>
 
@@ -471,7 +507,63 @@ function renderChart() {
 
 monthInput.addEventListener("change", loadMonth);
 const refreshAll = () => Promise.all([load(), loadMonth()]);
+// ---------- CREATE STUDENT ----------
+const createDlg = $("createDlg");
 
+function nextId() {                      // preview only; the server decides the real ID
+  const high = students.reduce((m, s) => Math.max(m, parseInt(String(s.student_id).replace(/\D/g, ""), 10) || 0), 0);
+  return "STU" + String(high + 1).padStart(3, "0");
+}
+const uniq = key => [...new Set(students.map(s => s[key]).filter(Boolean))].sort();
+
+function fillSelect(sel, other, values) {
+  sel.innerHTML = '<option value="">Choose…</option>' +
+    values.map(v => `<option>${esc(v)}</option>`).join("") +
+    '<option value="__new">Other (type new)…</option>';
+  other.hidden = true;
+  other.value = "";
+}
+function pick(sel, other) { return sel.value === "__new" ? other.value.trim() : sel.value; }
+
+$("cSubject").addEventListener("change", e => { $("cSubjectNew").hidden = e.target.value !== "__new"; });
+$("cCourse").addEventListener("change", e => { $("cCourseNew").hidden = e.target.value !== "__new"; });
+
+$("createBtn").addEventListener("click", () => {
+  $("cId").value = nextId();
+  $("cName").value = "";
+  $("cStatus").value = "";
+  $("cNote").textContent = "";
+  $("cDate").textContent = pretty(dateInput.value);
+  fillSelect($("cSubject"), $("cSubjectNew"), uniq("subject_name"));
+  fillSelect($("cCourse"), $("cCourseNew"), uniq("course"));
+  createDlg.showModal();
+});
+$("cCancel").addEventListener("click", () => createDlg.close());
+
+$("createForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const name = $("cName").value.trim();
+  const subject = pick($("cSubject"), $("cSubjectNew"));
+  const course = pick($("cCourse"), $("cCourseNew"));
+  if (!name || !subject || !course) { $("cNote").textContent = "Please fill in the name, subject and course."; return; }
+
+  const saveBtn = $("cSave");
+  saveBtn.disabled = true;
+  $("cNote").textContent = "";
+  try {
+    const r = await request("POST", { body: {
+      create: true, student_name: name, subject_name: subject, course,
+      status: $("cStatus").value || undefined, date: dateInput.value
+    } });
+    createDlg.close();
+    say(`${name} was added as ${r.student_id}.`);
+    await refreshAll();
+  } catch (err) {
+    $("cNote").textContent = err.message || "Network error. Please try again.";
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
 // Theme + year
 const root = document.documentElement, themeBtn = $("theme");
 const isDark = () => root.dataset.theme === "dark" || (!root.dataset.theme && matchMedia("(prefers-color-scheme:dark)").matches);
