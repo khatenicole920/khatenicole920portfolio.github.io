@@ -120,6 +120,19 @@ module.exports = async (req, res) => {
       const { student_id, status, date } = req.body || {};
       const target = date || today();
 
+      // CREATE: add a brand-new student ...
+      if (req.body && req.body.create === true) {
+         ...
+      }
+
+      // BULK: mark every student who has no record yet for this date
+      if (req.body && req.body.bulk === true) {
+         ...
+      }
+
+      if (!student_id || !STATUSES.includes(status))
+        return res.status(400).json({ error: "student_id and status ..." });
+
       // BULK: mark every student who has no record yet for this date
       // CREATE: add a brand-new student with the next student_id (STU016, STU017, ...)
       if (req.body && req.body.create === true) {
