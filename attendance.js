@@ -61,6 +61,28 @@ module.exports = async (req, res) => {
 
     const collection = await getCol(); // inside try/catch so DB failures return a clean 500
 
+    // ---------- GET /api/attendance?records=all  (attendance history) ----------
+    if (req.method === "GET" && req.query.records === "all") {
+      const students = await collection.find({}).sort({ student_id: 1 }).toArray();
+      const rows = [];
+      students.forEach(s => {
+        (s.attendance_records || []).forEach(r => {
+          if (!r || typeof r.date !== "string" || !STATUSES.includes(r.status)) return;
+          rows.push({
+            student_id: s.student_id,
+            student_name: s.student_name,
+            subject_name: s.subject_name,
+            course: s.course,
+            date: r.date,
+            status: r.status,
+            time: r.time || ""
+          });
+        });
+      });
+      rows.sort((a, b) => b.date.localeCompare(a.date) || String(a.student_id).localeCompare(String(b.student_id)));
+      return res.json({ records: rows });
+    }
+
     // ---------- GET /api/attendance?month=YYYY-MM  (monthly summary) ----------
     if (req.method === "GET" && req.query.month) {
       const month = req.query.month;
@@ -120,20 +142,6 @@ module.exports = async (req, res) => {
       const { student_id, status, date } = req.body || {};
       const target = date || today();
 
-      // CREATE: add a brand-new student ...
-      if (req.body && req.body.create === true) {
-         ...
-      }
-
-      // BULK: mark every student who has no record yet for this date
-      if (req.body && req.body.bulk === true) {
-         ...
-      }
-
-      if (!student_id || !STATUSES.includes(status))
-        return res.status(400).json({ error: "student_id and status ..." });
-
-      // BULK: mark every student who has no record yet for this date
       // CREATE: add a brand-new student with the next student_id (STU016, STU017, ...)
       if (req.body && req.body.create === true) {
         const name = String(req.body.student_name || "").trim().slice(0, 100);
@@ -168,9 +176,38 @@ module.exports = async (req, res) => {
         return res.status(409).json({ error: "Could not assign a new student ID. Please try again." });
       }
 
+      // BULK: mark every student who has no record yet for this date
+      if (req.body && req.body.bulk === true) {
+        const bulkStatus = status || "Present";
+        if (!STATUSES.includes(bulkStatus))
+          return res.status(400).json({ error: "status must be Present, Absent or Late." });
+        if (!isValidDate(target)) return res.status(400).json({ error: "date must be YYYY-MM-DD." });
+        const result = await collection.updateMany(
+          { "attendance_records.date": { $ne: target } },
+          { $push: { attendance_records: { date: target, status: bulkStatus, time: nowTime() } } }
+        );
+        return res.json({ ok: true, marked: result.modifiedCount });
+      }
+
+      if (!student_id || !STATUSES.includes(status))
+        return res.status(400).json({ error: "student_id and status (Present/Absent/Late) are required." });
+      if (!isValidDate(target)) return res.status(400).json({ error: "date must be YYYY-MM-DD." });
+
+      const result = await collection.updateOne(
+        { student_id, "attendance_records.date": { $ne: target } },
+        { $push: { attendance_records: { date: target, status, time: nowTime() } } }
+      );
+      if (!result.matchedCount) {
+        const exists = await collection.findOne({ student_id });
+        if (!exists) return res.status(404).json({ error: "Student not found." });
+        return res.status(409).json({ error: "A record already exists for that date. Use Edit." });
+      }
+      return res.status(201).json({ ok: true, student_id, date: target, status });
+    }
+
     // ---------- PUT /api/attendance  (EDIT existing) ----------
     if (req.method === "PUT") {
-      const { student_id, status, date, student_name, subject_name, course } = req.body || {};
+      const { student_id, status, date, new_date, student_name, subject_name, course } = req.body || {};
 
       // Edit student details (name / subject / course)
       if (student_name !== undefined || subject_name !== undefined || course !== undefined) {
@@ -190,9 +227,39 @@ module.exports = async (req, res) => {
       }
 
       const target = date || today();
-      if (!student_id || !STATUSES.includes(status))
-        return res.status(400).json({ error: "student_id and status (Present/Absent/Late) are required." });
+      if (!student_id) return res.status(400).json({ error: "student_id is required." });
       if (!isValidDate(target)) return res.status(400).json({ error: "date must be YYYY-MM-DD." });
+
+      // Move an attendance record to a different date (optionally also change status)
+      if (new_date && new_date !== target) {
+        if (!isValidDate(new_date)) return res.status(400).json({ error: "new_date must be YYYY-MM-DD." });
+        if (status && !STATUSES.includes(status))
+          return res.status(400).json({ error: "status must be Present, Absent or Late." });
+
+        const student = await collection.findOne(
+          { student_id },
+          { projection: { attendance_records: 1 } }
+        );
+        if (!student) return res.status(404).json({ error: "Student not found." });
+        const rec = (student.attendance_records || []).find(r => r.date === target);
+        if (!rec) return res.status(404).json({ error: "No record for that date." });
+        if ((student.attendance_records || []).some(r => r.date === new_date))
+          return res.status(409).json({ error: "A record already exists for the new date." });
+
+        const moved = { date: new_date, status: status || rec.status, time: nowTime() };
+        await collection.updateOne(
+          { student_id },
+          { $pull: { attendance_records: { date: target } } }
+        );
+        await collection.updateOne(
+          { student_id },
+          { $push: { attendance_records: moved } }
+        );
+        return res.json({ ok: true, student_id, date: new_date, status: moved.status });
+      }
+
+      if (!STATUSES.includes(status))
+        return res.status(400).json({ error: "student_id and status (Present/Absent/Late) are required." });
 
       const result = await collection.updateOne(
         { student_id, "attendance_records.date": target },
