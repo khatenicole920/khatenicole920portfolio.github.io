@@ -236,7 +236,12 @@ let loadToken = 0;   // lets us ignore out-of-date responses
 const editing = new Set();   // student_ids whose row is unlocked for editing
 const drafts = new Map();    // student_id -> dropdown choice not saved yet (survives search/re-render)
 const dateDrafts = new Map(); // student_id -> edited date not saved yet
-const pretty = d => new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const pretty = d => {
+  if (typeof d !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return d ? String(d) : "Unknown date";
+  const dt = new Date(d + "T00:00:00");
+  return Number.isNaN(dt.getTime()) ? d : dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+const historyKey = r => r.record_id ? `rid:${r.record_id}` : `${r.student_id}|${String(r.date ?? "")}|${r._idx ?? ""}`;
 
 dateInput.value = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
@@ -647,7 +652,7 @@ $("editStudentForm").addEventListener("submit", async ev => {
   const historyRows = $("historyRows"), historySearch = $("historySearch"), historyDate = $("historyDate"), historyStatus = $("historyStatus"), historyEmpty = $("historyEmpty");
   let historyData = [];
   let historyToken = 0;
-  const historyEditing = new Set(); // "student_id|date" keys unlocked for editing
+  const historyEditing = new Set(); // record keys unlocked for editing
 
   async function loadHistory() {
     const token = ++historyToken;
@@ -656,7 +661,18 @@ $("editStudentForm").addEventListener("submit", async ev => {
     try {
       const data = await request("GET", { query: { records: "all" } });
       if (token !== historyToken) return;
-      historyData = (data.records || []).map(r => ({ ...r, course: r.course || "" }));
+      const raw = Array.isArray(data) ? data : (data.records || []);
+      historyData = raw.map((r, i) => ({
+        record_id: r.record_id || r._id || null,
+        student_id: r.student_id ?? "",
+        student_name: r.student_name ?? "",
+        subject_name: r.subject_name ?? "",
+        course: r.course ?? "",
+        date: r.date == null ? "" : String(r.date),
+        status: r.status == null ? "" : String(r.status),
+        time: r.time == null ? "" : String(r.time),
+        _idx: i
+      }));
       historyEditing.clear();
       renderHistory();
     } catch (e) {
@@ -673,25 +689,27 @@ $("editStudentForm").addEventListener("submit", async ev => {
     const date = historyDate.value;
     const status = historyStatus.value;
     const shown = historyData.filter(r => {
-      if (date && r.date !== date) return false;
+      if (date && String(r.date) !== date) return false;
       if (status && r.status !== status) return false;
       if (!q) return true;
       return [r.student_id, r.student_name].some(v => String(v ?? "").toLowerCase().includes(q));
     });
 
     historyRows.innerHTML = shown.map(r => {
-      const key = `${r.student_id}|${r.date}`;
+      const key = historyKey(r);
       const edit = historyEditing.has(key);
+      const statusBadge = r.status ? `<span class="badge b-${esc(r.status)}">${esc(r.status)}</span>` : `<span style="color:var(--muted)">—</span>`;
+      const dateValue = /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : "";
       return `
-      <tr data-key="${esc(key)}" data-id="${esc(r.student_id)}" data-date="${esc(r.date)}">
-        <td>${edit ? `<input type="date" name="date" value="${esc(r.date)}">` : esc(pretty(r.date))}</td>
+      <tr data-key="${esc(key)}" data-id="${esc(r.student_id)}" data-date="${esc(r.date)}" data-record-id="${esc(r.record_id || "")}">
+        <td>${edit ? `<input type="date" name="date" value="${esc(dateValue)}">` : esc(pretty(r.date))}</td>
         <td>${esc(r.student_id)}</td>
         <td><b>${esc(r.student_name)}</b></td>
         <td class="hide-m">${esc(r.subject_name)}</td>
-        <td>${edit
-          ? `<select name="status"><option>Present</option><option>Absent</option><option>Late</option></select>`
-          : `<span class="badge b-${esc(r.status)}">${esc(r.status)}</span>`}</td>
         <td>${esc(r.course)}</td>
+        <td>${edit
+          ? `<select name="status"><option value="">Set…</option><option>Present</option><option>Absent</option><option>Late</option></select>`
+          : statusBadge}</td>
         <td style="color:var(--muted)">${esc(r.time)}</td>
         <td><div class="actions">
           ${edit
@@ -700,9 +718,10 @@ $("editStudentForm").addEventListener("submit", async ev => {
         </div></td>
       </tr>`;
     }).join("");
-    shown.filter(r => historyEditing.has(`${r.student_id}|${r.date}`)).forEach(r => {
-      const tr = historyRows.querySelector(`tr[data-key="${CSS.escape(r.student_id + "|" + r.date)}"]`);
-      if (tr) tr.querySelector('select[name="status"]').value = r.status;
+    shown.filter(r => historyEditing.has(historyKey(r))).forEach(r => {
+      const tr = historyRows.querySelector(`tr[data-key="${CSS.escape(historyKey(r))}"]`);
+      const sel = tr && tr.querySelector('select[name="status"]');
+      if (sel) sel.value = r.status || "";
     });
 
     if (!historyData.length) { historyEmpty.textContent = "No attendance records found yet."; historyEmpty.hidden = false; }
@@ -714,8 +733,8 @@ $("editStudentForm").addEventListener("submit", async ev => {
     const btn = e.target.closest("button[data-action]");
     if (!btn) return;
     const tr = btn.closest("tr");
-    const id = tr.dataset.id, date = tr.dataset.date, key = tr.dataset.key;
-    const rec = historyData.find(r => r.student_id === id && r.date === date);
+    const id = tr.dataset.id, date = tr.dataset.date, key = tr.dataset.key, recordId = tr.dataset.recordId || null;
+    const rec = historyData.find(r => historyKey(r) === key) || historyData.find(r => r.student_id === id && String(r.date) === date);
     if (!rec) return;
 
     if (btn.dataset.action === "edit") { historyEditing.add(key); renderHistory(); return; }
@@ -725,23 +744,27 @@ $("editStudentForm").addEventListener("submit", async ev => {
     controls.forEach(c => c.disabled = true);
     try {
       if (btn.dataset.action === "delete") {
-        if (!confirm(`Delete ${rec.student_name}'s ${rec.status} record for ${pretty(date)}?\n\nOnly this attendance record is removed.`)) return;
-        await request("DELETE", { query: { student_id: id, date } });
-        say(`Deleted ${rec.student_name}'s ${pretty(date)} attendance record.`);
+        const label = pretty(rec.date);
+        if (!confirm(`Delete ${rec.student_name || "this student"}'s ${rec.status || "attendance"} record for ${label}?\n\nOnly this attendance record is removed. The student stays in the class list.`)) return;
+        await request("DELETE", { query: recordId ? { record_id: recordId, student_id: id } : { student_id: id, date: rec.date } });
+        say(`Deleted ${rec.student_name || "student"}'s ${label} attendance record.`);
       }
       if (btn.dataset.action === "save") {
         const status = tr.querySelector('select[name="status"]').value;
         const newDate = tr.querySelector('input[name="date"]').value;
-        if (!status || !newDate) { say("Choose a status and date.", true); return; }
-        if (status === rec.status && newDate === rec.date) { say("No changes to save."); return; }
-        if (newDate !== rec.date && !confirm(`Move ${rec.student_name}'s ${pretty(date)} record to ${pretty(newDate)}?`)) return;
-        await request("PUT", { body: { student_id: id, status, date, new_date: newDate !== rec.date ? newDate : undefined } });
-        say(`Updated ${rec.student_name}'s attendance record.`);
+        if (!status) { say("Choose a status first.", true); return; }
+        if (!newDate) { say("Choose a valid date first.", true); return; }
+        const sameDate = String(rec.date) === newDate;
+        if (status === rec.status && sameDate) { say("No changes to save."); return; }
+        if (!sameDate && !confirm(`Move ${rec.student_name || "this student"}'s ${pretty(rec.date)} record to ${pretty(newDate)}?`)) return;
+        await request("PUT", { body: { record_id: recordId || undefined, student_id: id, status, date: rec.date, new_date: sameDate ? undefined : newDate } });
+        say(`Updated ${rec.student_name || "student"}'s attendance record.`);
       }
       historyEditing.delete(key);
       await refreshAll();
     } catch (err) {
       say(err.message || "Network error. Please try again.", true);
+      controls.forEach(c => c.disabled = false);
     } finally {
       renderHistory();
     }

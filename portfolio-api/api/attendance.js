@@ -13,6 +13,12 @@ const crypto = require("crypto");
 const DB = "LabAttendanceDB_MARQUEZ";
 const COL = "daily_attendance";
 const STATUSES = ["Present", "Absent", "Late"];
+const ObjectId = mongoose.Types.ObjectId;
+
+function toObjectId(id) {
+  if (!id || !mongoose.isValidObjectId(id)) return null;
+  return new ObjectId(id);
+}
 
 // Cache the connection *promise* so parallel requests share one connection attempt.
 let connPromise = null;
@@ -66,20 +72,22 @@ module.exports = async (req, res) => {
       const students = await collection.find({}).sort({ student_id: 1 }).toArray();
       const rows = [];
       students.forEach(s => {
-        (s.attendance_records || []).forEach(r => {
-          if (!r || typeof r.date !== "string" || !STATUSES.includes(r.status)) return;
+        (s.attendance_records || []).forEach((r, idx) => {
+          if (!r) return;
           rows.push({
+            record_id: r._id ? String(r._id) : null,
             student_id: s.student_id,
             student_name: s.student_name,
             subject_name: s.subject_name,
-            course: s.course,
-            date: r.date,
-            status: r.status,
-            time: r.time || ""
+            course: s.course || "",
+            date: r.date == null ? "" : String(r.date),
+            status: STATUSES.includes(r.status) ? r.status : (r.status == null ? "" : String(r.status)),
+            time: r.time == null ? "" : String(r.time),
+            _idx: idx
           });
         });
       });
-      rows.sort((a, b) => b.date.localeCompare(a.date) || String(a.student_id).localeCompare(String(b.student_id)));
+      rows.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.student_id).localeCompare(String(b.student_id)));
       return res.json({ records: rows });
     }
 
@@ -166,7 +174,7 @@ module.exports = async (req, res) => {
               student_name: name,
               subject_name: subject,
               course: courseName,
-              attendance_records: status ? [{ date: target, status, time: nowTime() }] : []
+              attendance_records: status ? [{ _id: new ObjectId(), date: target, status, time: nowTime() }] : []
             });
             return res.status(201).json({ ok: true, student_id: newId });
           } catch (err) {
@@ -184,7 +192,7 @@ module.exports = async (req, res) => {
         if (!isValidDate(target)) return res.status(400).json({ error: "date must be YYYY-MM-DD." });
         const result = await collection.updateMany(
           { "attendance_records.date": { $ne: target } },
-          { $push: { attendance_records: { date: target, status: bulkStatus, time: nowTime() } } }
+          { $push: { attendance_records: { _id: new ObjectId(), date: target, status: bulkStatus, time: nowTime() } } }
         );
         return res.json({ ok: true, marked: result.modifiedCount });
       }
@@ -195,7 +203,7 @@ module.exports = async (req, res) => {
 
       const result = await collection.updateOne(
         { student_id, "attendance_records.date": { $ne: target } },
-        { $push: { attendance_records: { date: target, status, time: nowTime() } } }
+        { $push: { attendance_records: { _id: new ObjectId(), date: target, status, time: nowTime() } } }
       );
       if (!result.matchedCount) {
         const exists = await collection.findOne({ student_id });
@@ -207,7 +215,7 @@ module.exports = async (req, res) => {
 
     // ---------- PUT /api/attendance  (EDIT existing) ----------
     if (req.method === "PUT") {
-      const { student_id, status, date, new_date, student_name, subject_name, course } = req.body || {};
+      const { student_id, status, date, new_date, record_id, student_name, subject_name, course } = req.body || {};
 
       // Edit student details (name / subject / course)
       if (student_name !== undefined || subject_name !== undefined || course !== undefined) {
@@ -226,40 +234,44 @@ module.exports = async (req, res) => {
         return res.json({ ok: true, student_id });
       }
 
-      const target = date || today();
-      if (!student_id) return res.status(400).json({ error: "student_id is required." });
-      if (!isValidDate(target)) return res.status(400).json({ error: "date must be YYYY-MM-DD." });
+      const rid = toObjectId(record_id);
+      const target = date == null ? today() : String(date);
+      if (!student_id && !rid) return res.status(400).json({ error: "student_id or record_id is required." });
+      if (!STATUSES.includes(status)) return res.status(400).json({ error: "status must be Present, Absent or Late." });
 
-      // Move an attendance record to a different date (optionally also change status)
-      if (new_date && new_date !== target) {
-        if (!isValidDate(new_date)) return res.status(400).json({ error: "new_date must be YYYY-MM-DD." });
-        if (status && !STATUSES.includes(status))
-          return res.status(400).json({ error: "status must be Present, Absent or Late." });
-
-        const student = await collection.findOne(
-          { student_id },
-          { projection: { attendance_records: 1 } }
-        );
-        if (!student) return res.status(404).json({ error: "Student not found." });
-        const rec = (student.attendance_records || []).find(r => r.date === target);
-        if (!rec) return res.status(404).json({ error: "No record for that date." });
-        if ((student.attendance_records || []).some(r => r.date === new_date))
-          return res.status(409).json({ error: "A record already exists for the new date." });
-
-        const moved = { date: new_date, status: status || rec.status, time: nowTime() };
-        await collection.updateOne(
-          { student_id },
-          { $pull: { attendance_records: { date: target } } }
-        );
-        await collection.updateOne(
-          { student_id },
-          { $push: { attendance_records: moved } }
-        );
-        return res.json({ ok: true, student_id, date: new_date, status: moved.status });
+      // Edit by unique record _id (preferred; works even when stored date is invalid)
+      if (rid) {
+        const set = { "attendance_records.$[r].status": status, "attendance_records.$[r].time": nowTime() };
+        if (new_date !== undefined) {
+          if (!isValidDate(new_date)) return res.status(400).json({ error: "new_date must be YYYY-MM-DD." });
+          if (student_id) {
+            const dup = await collection.findOne({ student_id, "attendance_records.date": new_date, "attendance_records._id": { $ne: rid } }, { projection: { _id: 1 } });
+            if (dup) return res.status(409).json({ error: "A record already exists for the new date." });
+          }
+          set["attendance_records.$[r].date"] = new_date;
+        }
+        const filter = student_id ? { student_id } : { "attendance_records._id": rid };
+        const result = await collection.updateOne(filter, { $set: set }, { arrayFilters: [{ "r._id": rid }] });
+        if (!result.matchedCount) return res.status(404).json({ error: "Attendance record not found." });
+        return res.json({ ok: true, student_id: student_id || null, date: new_date || target, status });
       }
 
-      if (!STATUSES.includes(status))
-        return res.status(400).json({ error: "student_id and status (Present/Absent/Late) are required." });
+      // Fallback by student_id + exact stored date value
+      if (!student_id) return res.status(400).json({ error: "student_id is required." });
+      if (new_date && new_date !== target) {
+        if (!isValidDate(new_date)) return res.status(400).json({ error: "new_date must be YYYY-MM-DD." });
+        const student = await collection.findOne({ student_id }, { projection: { attendance_records: 1 } });
+        if (!student) return res.status(404).json({ error: "Student not found." });
+        const rec = (student.attendance_records || []).find(r => String(r.date ?? "") === target);
+        if (!rec) return res.status(404).json({ error: "No record for that date." });
+        if ((student.attendance_records || []).some(r => String(r.date ?? "") === new_date))
+          return res.status(409).json({ error: "A record already exists for the new date." });
+        const moved = { ...rec, date: new_date, status, time: nowTime() };
+        const pulled = await collection.updateOne({ student_id }, { $pull: { attendance_records: { date: rec.date } } });
+        if (!pulled.modifiedCount) return res.status(404).json({ error: "No record for that date." });
+        await collection.updateOne({ student_id }, { $push: { attendance_records: moved } });
+        return res.json({ ok: true, student_id, date: new_date, status });
+      }
 
       const result = await collection.updateOne(
         { student_id, "attendance_records.date": target },
@@ -269,13 +281,21 @@ module.exports = async (req, res) => {
       return res.json({ ok: true, student_id, date: target, status });
     }
 
-    // ---------- DELETE /api/attendance?student_id=X&date=YYYY-MM-DD ----------
+    // ---------- DELETE /api/attendance?record_id=X  (preferred) ----------
+    // Fallback: ?student_id=X&date=... deletes only that attendance record (exact stored date match)
     if (req.method === "DELETE") {
-      const { student_id, date } = req.query;
-      const target = date || today();
-      if (!student_id) return res.status(400).json({ error: "student_id is required." });
-      if (!isValidDate(target)) return res.status(400).json({ error: "date must be YYYY-MM-DD." });
+      const { student_id, date, record_id } = req.query;
+      const rid = toObjectId(record_id);
 
+      if (rid) {
+        const filter = student_id ? { student_id, "attendance_records._id": rid } : { "attendance_records._id": rid };
+        const result = await collection.updateOne(filter, { $pull: { attendance_records: { _id: rid } } });
+        if (!result.modifiedCount) return res.status(404).json({ error: "Attendance record not found." });
+        return res.json({ ok: true, record_id: String(rid) });
+      }
+
+      if (!student_id) return res.status(400).json({ error: "student_id or record_id is required." });
+      const target = date == null ? "" : String(date);
       const result = await collection.updateOne(
         { student_id },
         { $pull: { attendance_records: { date: target } } }
