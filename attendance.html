@@ -246,6 +246,35 @@ const historyKey = r => r.record_id ? `rid:${r.record_id}` : `${r.student_id}|${
 
 dateInput.value = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
 
+let adminMode = !!sessionStorage.getItem("adminKey");
+const adminBtnEl = $("adminBtn");
+
+function applyAdminUI() {
+  document.querySelectorAll(".admin-only").forEach(el => el.hidden = !adminMode);
+  if (adminBtnEl) adminBtnEl.textContent = adminMode ? "Logout" : "Admin login";
+  if (adminBtnEl) { adminBtnEl.classList.toggle("primary", !adminMode); adminBtnEl.classList.toggle("danger", adminMode); }
+}
+
+function adminLogin() {
+  if (adminMode) {
+    sessionStorage.removeItem("adminKey");
+    adminMode = false;
+    applyAdminUI();
+    say("Logged out.");
+    render();
+    renderHistory();
+    return;
+  }
+  const entered = prompt("Enter the admin key:");
+  if (!entered) return;
+  sessionStorage.setItem("adminKey", entered.trim());
+  adminMode = true;
+  applyAdminUI();
+  say("Admin mode on.");
+  render();
+  renderHistory();
+}
+
 // Escape text before putting it inside innerHTML (prevents HTML injection)
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 
