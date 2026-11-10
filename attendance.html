@@ -255,7 +255,7 @@ function applyAdminUI() {
   if (adminBtnEl) { adminBtnEl.classList.toggle("primary", !adminMode); adminBtnEl.classList.toggle("danger", adminMode); }
 }
 
-function adminLogin() {
+async function adminLogin() {
   if (adminMode) {
     sessionStorage.removeItem("adminKey");
     adminMode = false;
@@ -267,7 +267,29 @@ function adminLogin() {
   }
   const entered = prompt("Enter the admin key:");
   if (!entered) return;
-  sessionStorage.setItem("adminKey", entered.trim());
+  const key = entered.trim();
+
+  // Verify with the server first: the backend checks the key BEFORE the body,
+  // so wrong key = 401, correct key = 400 (empty body fails validation).
+  let status;
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Admin-Key": key },
+      body: "{}"
+    });
+    status = res.status;
+  } catch {
+    say("Could not reach the server. Check your connection.", true);
+    return;
+  }
+  if (status === 401) {
+    sessionStorage.removeItem("adminKey");
+    say("Incorrect admin key.", true);   // ← the red error you expected
+    return;
+  }
+
+  sessionStorage.setItem("adminKey", key);
   adminMode = true;
   applyAdminUI();
   say("Admin mode on.");
