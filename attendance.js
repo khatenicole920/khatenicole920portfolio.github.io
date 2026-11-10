@@ -60,29 +60,27 @@ module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
+    // Admin auth applies only to mutating requests.
+    if (req.method !== "GET") {
+      const adminKey = process.env.ADMIN_KEY;
 
-// Require ADMIN_KEY to be configured.
-// Fail closed if the environment variable is missing.
-if (!process.env.ADMIN_KEY) {
-  console.error("ADMIN_KEY is missing from environment variables.");
-  return res.status(500).json({
-    error: "Server authentication is not configured."
-  });
-}
+      if (!adminKey) {
+        console.error("ADMIN_KEY is missing.");
+        return res.status(500).json({
+          error: "Server authentication is not configured."
+        });
+      }
 
-// Require the correct admin key for ALL protected requests,
-// including GET, POST, PUT, and DELETE.
-if (!keyMatches(req.headers["x-admin-key"])) {
-  return res.status(401).json({
-    error: "Unauthorized. Invalid or missing admin key."
-  });
-}
+      const providedKey = req.headers["x-admin-key"];
 
-// CONNECT TO MONGODB
-const collection = await getCol();
+      if (!providedKey || !keyMatches(providedKey)) {
+        return res.status(401).json({
+          error: "Unauthorized. Invalid or missing admin key."
+        });
+      }
+    }
 
-// Your existing GET, POST, PUT, DELETE operations continue here.
-
+    const collection = await getCol();
 
     // ---------- GET /api/attendance?records=all  (attendance history) ----------
     if (req.method === "GET" && req.query.records === "all") {
