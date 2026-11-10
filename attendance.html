@@ -97,10 +97,11 @@ dialog input+input{margin-top:8px}
   <div class="toolbar">
     <label for="date">View / mark date:</label>
     <input type="date" id="date">
-        <button id="createBtn" class="primary">+ Create student</button>
+    <button id="adminBtn" class="primary">Admin login</button>
+    <button id="createBtn" class="primary admin-only" hidden>+ Create student</button>
     <label for="search" class="sr-only">Search students</label>
     <input type="search" id="search" placeholder="Search name, ID, subject, course">
-    <button id="markAll" class="primary">Mark all Present</button>
+    <button id="markAll" class="primary admin-only" hidden>Mark all Present</button>
     <button id="exportDay">Export day (CSV)</button>
   </div>
   <p id="note" role="status" aria-live="polite"></p>
@@ -324,28 +325,32 @@ function render() {
     const isEditing = editing.has(s.student_id);
     const draft = drafts.get(s.student_id) ?? s.status ?? "";
     const dateDraft = dateDrafts.get(s.student_id) ?? dateInput.value;
-    const locked = !!s.status && !isEditing;                       // saved rows stay locked until Edit is clicked
-    const changed = isEditing && ((draft !== "" && draft !== s.status) || dateDraft !== dateInput.value); // Update only when something really changed
+    const locked = !!s.status && !isEditing;
+    const changed = isEditing && ((draft !== "" && draft !== s.status) || dateDraft !== dateInput.value);
+    const statusOpts = ["Present", "Absent", "Late"].map(o => `<option${draft === o ? " selected" : ""}>${o}</option>`).join("");
+    let statusCell, actionsCell;
+    if (adminMode) {
+      statusCell = `<select aria-label="Status for ${esc(s.student_name)}"${locked ? " disabled" : ""}>
+        <option value="">Set…</option>${statusOpts}</select>`;
+      actionsCell = s.status ? `
+        <button data-action="editStudent">Edit info</button>
+        <button data-action="edit">${isEditing ? "Cancel" : "Edit"}</button>
+        <button class="primary" data-action="update"${changed ? "" : " disabled"}>Update</button>
+        <button class="danger" data-action="delete">Delete</button>`
+        : `<button data-action="editStudent">Edit info</button><button class="primary" data-action="save">Save</button>`;
+    } else {
+      statusCell = s.status ? `<span class="badge b-${esc(s.status)}">${esc(s.status)}</span>` : `<span style="color:var(--muted)">—</span>`;
+      actionsCell = "";
+    }
     return `
     <tr data-id="${esc(s.student_id)}" data-exists="${s.status ? "1" : "0"}">
       <td>${esc(s.student_id)}</td>
       <td><b>${esc(s.student_name)}</b></td>
       <td class="hide-m">${esc(s.subject_name)}</td>
       <td class="hide-m">${esc(s.course)}</td>
-      <td>${s.status ? `<span class="badge b-${esc(s.status)}">${esc(s.status)}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
+      <td>${statusCell}</td>
       <td style="color:var(--muted)">${isEditing && s.status ? `<input type="date" value="${esc(dateDraft)}" aria-label="Date for ${esc(s.student_name)}" style="padding:6px 8px;font-size:.85rem;max-width:150px">` : esc(s.time)}</td>
-      <td><div class="actions">
-        <select aria-label="Status for ${esc(s.student_name)}"${locked ? " disabled" : ""}>
-          <option value="">Set…</option>
-          ${["Present", "Absent", "Late"].map(o => `<option${draft === o ? " selected" : ""}>${o}</option>`).join("")}
-        </select>
-        ${s.status ? `
-          <button data-action="editStudent">Edit info</button>
-          <button data-action="edit">${isEditing ? "Cancel" : "Edit"}</button>
-          <button class="primary" data-action="update"${changed ? "" : " disabled"}>Update</button>
-          <button class="danger" data-action="delete">Delete</button>`
-        : `<button data-action="editStudent">Edit info</button><button class="primary" data-action="save">Save</button>`}
-      </div></td>
+      <td><div class="actions">${actionsCell}</div></td>
     </tr>`;
   }).join("");
 
@@ -697,9 +702,17 @@ $("editStudentForm").addEventListener("submit", async ev => {
 
     historyRows.innerHTML = shown.map(r => {
       const key = historyKey(r);
-      const edit = historyEditing.has(key);
+      const edit = adminMode && historyEditing.has(key);
       const statusBadge = r.status ? `<span class="badge b-${esc(r.status)}">${esc(r.status)}</span>` : `<span style="color:var(--muted)">—</span>`;
       const dateValue = /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : "";
+      let statusCell, actionsCell;
+      if (adminMode && edit) {
+        statusCell = `<select name="status"><option value="">Set…</option><option>Present</option><option>Absent</option><option>Late</option></select>`;
+        actionsCell = `<button class="primary" data-action="save">Save</button><button data-action="cancel">Cancel</button>`;
+      } else {
+        statusCell = statusBadge;
+        actionsCell = adminMode ? `<button data-action="edit">Edit</button><button class="danger" data-action="delete">Delete</button>` : "";
+      }
       return `
       <tr data-key="${esc(key)}" data-id="${esc(r.student_id)}" data-date="${esc(r.date)}" data-record-id="${esc(r.record_id || "")}">
         <td>${edit ? `<input type="date" name="date" value="${esc(dateValue)}">` : esc(pretty(r.date))}</td>
@@ -707,15 +720,9 @@ $("editStudentForm").addEventListener("submit", async ev => {
         <td><b>${esc(r.student_name)}</b></td>
         <td class="hide-m">${esc(r.subject_name)}</td>
         <td>${esc(r.course)}</td>
-        <td>${edit
-          ? `<select name="status"><option value="">Set…</option><option>Present</option><option>Absent</option><option>Late</option></select>`
-          : statusBadge}</td>
+        <td>${statusCell}</td>
         <td style="color:var(--muted)">${esc(r.time)}</td>
-        <td><div class="actions">
-          ${edit
-            ? `<button class="primary" data-action="save">Save</button><button data-action="cancel">Cancel</button>`
-            : `<button data-action="edit">Edit</button><button class="danger" data-action="delete">Delete</button>`}
-        </div></td>
+        <td><div class="actions">${actionsCell}</div></td>
       </tr>`;
     }).join("");
     shown.filter(r => historyEditing.has(historyKey(r))).forEach(r => {
@@ -781,6 +788,9 @@ $("editStudentForm").addEventListener("submit", async ev => {
       ...historyData.map(r => [r.date, r.student_id, r.student_name, r.subject_name, r.course, r.status, r.time || ""])
     ]);
   });
+
+  $("adminBtn").addEventListener("click", adminLogin);
+  applyAdminUI();
 
   load();
   loadMonth();
